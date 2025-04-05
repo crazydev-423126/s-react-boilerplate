@@ -1,32 +1,84 @@
+const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const htmlWebpackPlugin = new HtmlWebpackPlugin({ template: 'index.html' });
+const definePlugin = new webpack.DefinePlugin({
+  __DEV__: JSON.stringify(JSON.parse(process.env.NODE_ENV === 'development' || 'true'))
+});
+
+const stylesheetsLoaders = [
+  { loader: 'style-loader' },
+  { loader: 'css-loader',
+    options: {
+      modules: true,
+      localIdentName: '[path]-[local]-[hash:base64:3]',
+      sourceMap: true
+    }
+  }
+];
+
 module.exports = {
-  context: __dirname + '/src',
-  entry: {
-    javascript: "./app.js",
-    html: "./index.html"
-  },
+  context: path.join(__dirname, 'src'),
+  entry: './index',
   output: {
-    filename: 'app.js',
-    path: __dirname + '/dist'
+    filename: '[hash].js',
+  },
+  devtool: 'source-map',
+  plugins: [htmlWebpackPlugin, definePlugin],
+  resolve: {
+    modules: ['node_modules', path.join(__dirname, 'src')]
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: "babel",
-        query:
-        {
-          presets:['react', 'es2015', 'stage-0']
-        },
-      },
-      {
-        test: /\.css$/,
-        loader: 'style-loader!css-loader?modules&localIdentName=[hash:base64]',
-      },
-      {
+        loader: 'babel-loader'
+      }, {
         test: /\.html$/,
-        loader: "file?name=[name].[ext]"
+        loader: 'html-loader'
+      }, {
+        test: /\.css$/,
+        use: stylesheetsLoaders
+      }, {
+        test: /\.scss$/,
+        use: [...stylesheetsLoaders, {
+          loader: 'sass-loader',
+          options: {
+            sourceMap: true
+          }
+        }]
+      }, {
+        test: /\.sass$/,
+        use: [...stylesheetsLoaders, {
+          loader: 'sass-loader',
+          options: {
+            indentedSyntax: 'sass',
+            sourceMap: true
+          }
+        }]
+      }, {
+        test: /\.less$/,
+        use: [...stylesheetsLoaders, {
+          loader: 'less-loader',
+          options: {
+            sourceMap: true
+          }
+        }]
       }
     ]
   },
+  devServer: {
+    historyApiFallback: true,
+    proxy: {
+      '/api/*': {
+        target: 'http://localhost:8181',
+        changeOrigin: true,
+      pathRewrite: {
+        '^/api': ''
+      }
+    }
+  }
+}
 };
